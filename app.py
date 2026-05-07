@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request, UploadFile, File, Form
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import google.generativeai as genai
@@ -8,7 +8,7 @@ import os
 import fitz
 
 load_dotenv()
-app = FastAPI(title="ToolFlow AI", version="6.0.0")
+app = FastAPI(title="ToolFlow AI", version="6.1.0")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 api_key = os.getenv("GEMINI_API_KEY", "").strip()
@@ -41,6 +41,10 @@ def extract_pdf_text(pdf_bytes: bytes) -> str:
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     return templates.TemplateResponse(request, "index.html", {"page_title": "ToolFlow AI"})
+@app.get("/about", response_class=HTMLResponse)
+async def about(request: Request):
+    return templates.TemplateResponse(request, "about.html")
+
 @app.get("/privacy", response_class=HTMLResponse)
 async def privacy(request: Request):
     return templates.TemplateResponse(request, "privacy.html")
@@ -114,3 +118,23 @@ Regras:
 """
     result = generate_ai_response(prompt)
     return templates.TemplateResponse(request, "result.html", {"title": "Perfil LinkedIn Gerado", "result": result})
+
+@app.get("/robots.txt", response_class=PlainTextResponse)
+async def robots():
+    return "User-agent: *\nAllow: /\nSitemap: https://toolflow-ai.onrender.com/sitemap.xml\n"
+
+@app.get("/ads.txt", response_class=PlainTextResponse)
+async def ads_txt():
+    return "google.com, pub-5160731650313944, DIRECT, f08c47fec0942fa0\n"
+
+@app.get("/sitemap.xml")
+async def sitemap():
+    xml = """<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://toolflow-ai.onrender.com/</loc><priority>1.0</priority></url>
+  <url><loc>https://toolflow-ai.onrender.com/about</loc><priority>0.7</priority></url>
+  <url><loc>https://toolflow-ai.onrender.com/privacy</loc><priority>0.5</priority></url>
+  <url><loc>https://toolflow-ai.onrender.com/terms</loc><priority>0.5</priority></url>
+  <url><loc>https://toolflow-ai.onrender.com/contact</loc><priority>0.5</priority></url>
+</urlset>"""
+    return Response(content=xml, media_type="application/xml")
